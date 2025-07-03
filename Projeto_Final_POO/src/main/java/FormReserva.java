@@ -1,3 +1,6 @@
+// Higor Silva Fernandes
+// RA: 2313898
+
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
@@ -9,17 +12,53 @@
  */
 public class FormReserva extends javax.swing.JFrame {
     
-     private boolean modoEdicao = false;
+    private static FormReserva instancia;
+    private boolean modoEdicao = false;
     private int indiceDaReserva;
-    private FormsRelatorio telaRelatorio; // Para poder chamar o 'carregarTabela' depois
+    private FormsRelatorio telaRelatorio;
     /**
      * Creates new form FormReserva
      */
-    public FormReserva() {
+    private FormReserva() { // Construtor PRIVADO
         initComponents();
-        
-        // Adicione esta linha para desabilitar o botão 'X'
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
+    }
+    
+    //MÉTODO SINGLETON
+    public static FormReserva getInstancia() {
+        if (instancia == null) {
+            instancia = new FormReserva();
+        }
+        return instancia;
+    }
+    
+    // Este método substitui o construtor de edição
+    public void prepararParaAlterar(Reserva reserva, int indice) {
+        this.modoEdicao = true;
+        this.indiceDaReserva = indice;
+        this.setTitle("Alterar Reserva");
+        btSalv.setText("Confirmar Alteração");
+
+        // Preenche os campos
+        txtNomMorad.setText(reserva.getMorador().getNome());
+        txtNumApartm.setText(reserva.getMorador().getApartamento());
+        txtDataRes.setText(reserva.getData());
+        
+        // Seleciona o espaço
+        String nomeSimplesClasse = reserva.getEspacoLazer().getClass().getSimpleName();
+        if (nomeSimplesClasse.equalsIgnoreCase("SalaoFestas")) {
+            jComboBox1.setSelectedItem("Salão de Festa");
+        } else {
+            jComboBox1.setSelectedItem(nomeSimplesClasse);
+        }
+    }
+    
+    // Método para resetar o formulário para o modo de criação
+    private void resetarParaCriacao() {
+        this.modoEdicao = false;
+        this.setTitle("Fazer Reserva");
+        btSalv.setText("Salvar");
+        limparCampos();
     }
     
     public FormReserva(Reserva reserva, int indice, FormsRelatorio telaRelatorio) {
@@ -188,72 +227,67 @@ public class FormReserva extends javax.swing.JFrame {
 
     private void btSalvActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btSalvActionPerformed
         try {
-        // Pega o item selecionado no ComboBox para ser usado em ambas as lógicas
         String espacoSelecionado = (String) jComboBox1.getSelectedItem();
-        EspacoLazer espaco = null; // Cria uma variável para armazenar o espaço de lazer
+        EspacoLazer espaco = null;
 
-        // Converte a seleção do ComboBox para um objeto EspacoLazer correspondente
         switch (espacoSelecionado) {
             case "Piscina":
-                espaco = new Piscina();
+                // Você pode adicionar construtores específicos se precisar
+                // passar parâmetros como profundidade, etc.
+                espaco = new Piscina(); 
                 break;
             case "Churrasqueira":
                 espaco = new Churrasqueira();
                 break;
-            case "Salão de Festa":
+            case "Salão de Festa": // Lembre-se que o item no ComboBox é "Salão de Festa"
                 espaco = new SalaoFestas();
                 break;
-            default: // Caso para "Espaco Lazer"
-                espaco = new EspacoLazer(); // Usa a classe base
+            case "Espaco Lazer":
+                espaco = new EspacoLazer();
                 break;
+            default:
+                // É uma boa prática tratar um caso padrão
+                throw new Exception("Tipo de espaço inválido selecionado.");
         }
 
-        // MODO DE ALTERAÇÃO: Atualiza um item existente na lista
         if (modoEdicao) {
-            // 1. Pega a reserva original da lista usando o índice que guardamos
-            Reserva reservaExistente = FormPrincipal.listaDeReservas.get(indiceDaReserva);
-
-            // 2. Atualiza os dados do morador e a data
+            Reserva reservaExistente = BDReserva.getInstancia().getReservaByIndex(indiceDaReserva);
             reservaExistente.getMorador().setNome(txtNomMorad.getText());
             reservaExistente.getMorador().setApartamento(txtNumApartm.getText());
-            reservaExistente.setData(txtDataRes.getText()); // Validação de data acontece aqui
+            reservaExistente.setData(txtDataRes.getText());
+            reservaExistente.setEspacoLazer(espaco); // Agora 'espaco' terá o objeto correto!
 
-            // 3. Substitui o objeto de espaço de lazer pelo novo, caso tenha sido alterado
-            reservaExistente.setEspacoLazer(espaco);
+            BDReserva.getInstancia().updateReserva(indiceDaReserva, reservaExistente);
+            
+            // Atualiza a tabela no formulário de relatório.
+            FormsRelatorio.getInstancia().carregarTabela(); 
+            
+             javax.swing.JOptionPane.showMessageDialog(this, "Cadastro alterado com sucesso!!", "Sucesso", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            
+            this.dispose();
+            resetarParaCriacao();
 
-            // 4. Manda a tela de relatório recarregar a tabela para mostrar os dados atualizados
-            telaRelatorio.carregarTabela();
-
-            javax.swing.JOptionPane.showMessageDialog(this, "Reserva alterada com sucesso!", "Sucesso", javax.swing.JOptionPane.INFORMATION_MESSAGE);
-            this.dispose(); // Fecha a janela de edição
-
-        // MODO DE CRIAÇÃO: Adiciona um novo item à lista
         } else {
-            // 1. Cria um novo objeto Morador
             Morador novoMorador = new Morador();
             novoMorador.setNome(txtNomMorad.getText());
             novoMorador.setApartamento(txtNumApartm.getText());
 
-            // 2. Cria uma nova Reserva
             Reserva novaReserva = new Reserva();
             novaReserva.setMorador(novoMorador);
             novaReserva.setData(txtDataRes.getText());
-            novaReserva.setEspacoLazer(espaco); // Atribui o objeto de espaço de lazer criado no 'switch'
+            novaReserva.setEspacoLazer(espaco); // 'espaco' também terá o objeto correto aqui!
 
-            // 3. Adiciona a nova reserva na lista principal
-            FormPrincipal.listaDeReservas.add(novaReserva);
-
-            javax.swing.JOptionPane.showMessageDialog(this, "Reserva salva com sucesso!", "Sucesso", javax.swing.JOptionPane.INFORMATION_MESSAGE);
-            limparCampos(); // Limpa os campos para um novo cadastro
+            BDReserva.getInstancia().addReserva(novaReserva);
+            
+            javax.swing.JOptionPane.showMessageDialog(this, "Cadastro realizado com sucesso!!", "Sucesso", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            
+            limparCampos();
         }
 
     } catch (EntradaInvalidaException e) {
         javax.swing.JOptionPane.showMessageDialog(this, e.getMessage(), "Erro de Entrada", javax.swing.JOptionPane.ERROR_MESSAGE);
     } catch (Exception e) {
-        // Captura qualquer outro erro inesperado e mostra uma mensagem
         javax.swing.JOptionPane.showMessageDialog(this, "Ocorreu um erro inesperado: " + e.getMessage(), "Erro", javax.swing.JOptionPane.ERROR_MESSAGE);
-        // Para depuração, você pode querer ver o erro completo no console:
-        // e.printStackTrace();
     }
     }//GEN-LAST:event_btSalvActionPerformed
 
@@ -272,6 +306,7 @@ public class FormReserva extends javax.swing.JFrame {
         
     private void btSaiActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btSaiActionPerformed
         // TODO add your handling code here:
+        resetarParaCriacao(); // Garante que, ao reabrir, estará no modo de criação
         this.dispose();
     }//GEN-LAST:event_btSaiActionPerformed
 
@@ -304,6 +339,7 @@ public class FormReserva extends javax.swing.JFrame {
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
+            @Override
             public void run() {
                 new FormReserva().setVisible(true);
             }

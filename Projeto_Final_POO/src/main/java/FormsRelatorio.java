@@ -1,3 +1,6 @@
+// Higor Silva Fernandes
+// RA: 2313898
+
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
@@ -9,36 +12,34 @@
  */
 public class FormsRelatorio extends javax.swing.JFrame {
     
-    /**
-     * Creates new form FormsRelatorio
-     */
-    public FormsRelatorio() {
+    private static FormsRelatorio instancia;
+    
+    private FormsRelatorio() { // Construtor é PRIVADO
         initComponents();
-        
-         //Linha para que as células não sejam editáveis com um clique
-        jTable1.setDefaultEditor(Object.class, null);
-        
-        //linha para desabilitar o botão 'X'
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
-        carregarTabela();
+        jTable1.setDefaultEditor(Object.class, null);
+    }
+    
+    //MÉTODO SINGLETON
+    public static FormsRelatorio getInstancia() {
+        if (instancia == null) {
+            instancia = new FormsRelatorio();
+        }
+        return instancia;
     }
     
     //Função para atualizar a tabela
     public void carregarTabela() {
-        // 1. Obtém o modelo da tabela
         javax.swing.table.DefaultTableModel model = (javax.swing.table.DefaultTableModel) jTable1.getModel();
-
-        // 2. Limpa as linhas existentes para evitar duplicatas
         model.setRowCount(0);
 
-        // 3. Itera sobre a lista de reservas do FormPrincipal
-        for (Reserva reserva : FormPrincipal.listaDeReservas) {
-            // 4. Adiciona uma nova linha para cada reserva na tabela
+        // Busca os dados diretamente da classe BDReserva
+        for (Reserva reserva : BDReserva.getInstancia().getReservas()) {
             model.addRow(new Object[]{
                 reserva.getMorador().getNome(),
                 reserva.getMorador().getApartamento(),
                 reserva.getData(),
-                reserva.getEspacoLazer().getClass().getSimpleName() // Pega o nome da classe do espaço (Piscina, etc.)
+                reserva.getEspacoLazer().getClass().getSimpleName()
             });
         }
     }
@@ -131,54 +132,39 @@ public class FormsRelatorio extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btExclActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btExclActionPerformed
-    // 1. Pega o índice da linha que o usuário selecionou na tabela
     int selectedRow = jTable1.getSelectedRow();
+        if (selectedRow >= 0) {
+            int confirmacao = javax.swing.JOptionPane.showConfirmDialog(this,
+                    "Tem certeza que deseja excluir esta reserva?", "Confirmar Exclusão",
+                    javax.swing.JOptionPane.YES_NO_OPTION);
 
-    // 2. Verifica se o usuário realmente selecionou uma linha (o índice será -1 se nada for selecionado)
-    if (selectedRow >= 0) {
-        // 3. Pede uma confirmação ao usuário antes de excluir permanentemente
-        int confirmacao = javax.swing.JOptionPane.showConfirmDialog(this,
-                "Tem certeza que deseja excluir esta reserva permanentemente?",
-                "Confirmar Exclusão",
-                javax.swing.JOptionPane.YES_NO_OPTION);
-
-        // 4. Se o usuário clicar em "Sim" (YES_OPTION)
-        if (confirmacao == javax.swing.JOptionPane.YES_OPTION) {
-            // 5. REMOVE a reserva da lista de dados principal usando o índice da linha selecionada.
-            // Esta é a etapa que faltava e que torna a exclusão definitiva.
-            FormPrincipal.listaDeReservas.remove(selectedRow);
-
-            // 6. Atualiza a tabela para refletir a remoção do item da lista.
-            // Chamar carregarTabela() é uma forma simples e segura de garantir que a
-            // tabela e a lista de dados estejam perfeitamente sincronizadas.
-            carregarTabela();
-
-            javax.swing.JOptionPane.showMessageDialog(this, "Reserva excluída com sucesso!", "Sucesso", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            if (confirmacao == javax.swing.JOptionPane.YES_OPTION) {
+                // Exclui a reserva usando o método da classe BDReserva
+                BDReserva.getInstancia().deleteReserva(selectedRow);
+                carregarTabela(); // Atualiza a tabela
+                
+                javax.swing.JOptionPane.showMessageDialog(this, "Cadastro excluido com sucesso!!", "Sucesso", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            }
+        } else {
+            javax.swing.JOptionPane.showMessageDialog(this, "Selecione uma reserva para excluir.", "Nenhuma seleção", javax.swing.JOptionPane.WARNING_MESSAGE);
         }
-    } else {
-        // 7. Se nenhuma linha foi selecionada, avisa o usuário.
-        javax.swing.JOptionPane.showMessageDialog(this, "Por favor, selecione uma reserva na tabela para excluir.", "Nenhuma seleção", javax.swing.JOptionPane.WARNING_MESSAGE);
-    }
     }//GEN-LAST:event_btExclActionPerformed
 
     private void btAlterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btAlterActionPerformed
     
-    int selectedRow = jTable1.getSelectedRow();
+        int selectedRow = jTable1.getSelectedRow();
+        if (selectedRow >= 0) {
+            // Pega a reserva do nosso "banco de dados"
+            Reserva reservaParaAlterar = BDReserva.getInstancia().getReservaByIndex(selectedRow);
 
-    // Verifica se uma linha foi realmente selecionada
-    if (selectedRow >= 0) {
-        // Pega a reserva correspondente da nossa lista principal
-        Reserva reservaParaAlterar = FormPrincipal.listaDeReservas.get(selectedRow);
+            // Abre o FormReserva em modo de edição.
+            // A tela FormReserva também será um Singleton, então não usamos "new"
+            FormReserva.getInstancia().prepararParaAlterar(reservaParaAlterar, selectedRow);
+            FormReserva.getInstancia().setVisible(true);
 
-        // Abre o FormReserva em modo de edição, passando a reserva,
-        // seu índice na lista e a referência a esta janela de relatório
-        FormReserva formEdicao = new FormReserva(reservaParaAlterar, selectedRow, this);
-        formEdicao.setVisible(true);
-
-    } else {
-        // Caso o usuário não tenha selecionado nada, exibe um aviso
-        javax.swing.JOptionPane.showMessageDialog(this, "Por favor, selecione uma reserva na tabela para alterar.", "Nenhuma seleção", javax.swing.JOptionPane.WARNING_MESSAGE);
-    }
+        } else {
+            javax.swing.JOptionPane.showMessageDialog(this, "Selecione uma reserva para alterar.", "Nenhuma seleção", javax.swing.JOptionPane.WARNING_MESSAGE);
+        }
     
     }//GEN-LAST:event_btAlterActionPerformed
 

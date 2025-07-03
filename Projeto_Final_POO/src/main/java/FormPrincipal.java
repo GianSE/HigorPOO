@@ -1,27 +1,24 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
+// Higor Silva Fernandes
+// RA: 2313898
 
-/**
- *
- * @author Aluno
- */
 import java.util.ArrayList;
 import java.util.List;
 
 public class FormPrincipal extends javax.swing.JFrame {
     
-    //linha para criar a lista central de reservas
-    public static List<Reserva> listaDeReservas = new ArrayList<>();
-    /**
-     * Creates new form FormPrincipal
-     */
-    public FormPrincipal() {
+    private static FormPrincipal instancia;
+    
+    private FormPrincipal() { // Construtor PRIVADO
         initComponents();
-        
-        // Adicione esta linha para desabilitar o botão 'X'
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
+    }
+
+    //MÉTODO SINGLETON
+    public static FormPrincipal getInstancia() {
+        if (instancia == null) {
+            instancia = new FormPrincipal();
+        }
+        return instancia;
     }
 
     /**
@@ -116,13 +113,12 @@ public class FormPrincipal extends javax.swing.JFrame {
     }//GEN-LAST:event_rtSaiActionPerformed
 
     private void rtListRelatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rtListRelatActionPerformed
-        // TODO add your handling code here:
-        new FormsRelatorio().setVisible(true);
+        FormsRelatorio.getInstancia().setVisible(true); // Usa o Singleton
+        FormsRelatorio.getInstancia().carregarTabela(); // Garante que a tabela está sempre atualizada
     }//GEN-LAST:event_rtListRelatActionPerformed
 
     private void rtFazCadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rtFazCadActionPerformed
-        // TODO add your handling code here:
-        new FormReserva().setVisible(true);
+        FormReserva.getInstancia().setVisible(true); // Usa o Singleton
     }//GEN-LAST:event_rtFazCadActionPerformed
 
     /**
@@ -155,7 +151,7 @@ public class FormPrincipal extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new FormPrincipal().setVisible(true);
+                FormPrincipal.getInstancia().setVisible(true);
             }
         });
     }
